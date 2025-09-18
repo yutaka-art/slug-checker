@@ -176,17 +176,17 @@
         <h2>Enterprise Slug 存在確認</h2>
         
         <div class="note">
-            <strong>重要:</strong> 正確な判定のため、GitHubからサインアウトまたはシークレットモードで実行してください。<br><br>
-            <strong>判定方法:</strong> 下のボタンで <code>https://github.com/enterprises/&lt;slug&gt;</code> を開き、結果を確認してください。<br>
-            • <strong>404エラー表示</strong> → そのslugは使用可能です<br>
-            • <strong>ページ表示/ログイン画面</strong> → そのslugは既に使用中です<br>
-            • <strong>アクセス拒否</strong> → 判定が困難です（再試行推奨）
+            <strong>自動判定機能:</strong> ページ内で自動的にslugの利用可否を判定します。<br>
+            <strong>推奨:</strong> より正確な判定のため、GitHubからサインアウトまたはシークレットモードでの使用を推奨します。
         </div>
         
         <div class="input-group">
             <input type="text" id="slugInput" placeholder="例: acme-enterprise">
+            <button type="button" id="checkSlugBtn">チェック</button>
             <button type="button" id="openSlugBtn">ページを開く</button>
         </div>
+        
+        <div id="slugResult" class="result"></div>
     </div>
 
     <script>
@@ -199,7 +199,9 @@
             const checkUsernameBtn = document.getElementById('checkUsernameBtn');
             const usernameResult = document.getElementById('usernameResult');
             const slugInput = document.getElementById('slugInput');
+            const checkSlugBtn = document.getElementById('checkSlugBtn');
             const openSlugBtn = document.getElementById('openSlugBtn');
+            const slugResult = document.getElementById('slugResult');
             
             // 要素の存在確認
             if (!usernameInput || !checkUsernameBtn || !usernameResult) {
@@ -280,9 +282,114 @@
                 }
             });
             
+            // Enterprise slug用の要素存在確認
+            if (!slugInput || !checkSlugBtn || !openSlugBtn || !slugResult) {
+                console.error('Enterprise slug用の要素が見つかりません');
+                return;
+            }
+            
+            console.log('Enterprise slug要素が正常に取得されました');
+            
+            // Enterprise slugの有効性をチェックする関数
+            function isValidSlug(slug) {
+                // 基本的な形式チェック（英数字とハイフン）
+                return /^[a-zA-Z0-9-]+$/.test(slug) && slug.length >= 1 && slug.length <= 100;
+            }
+            
+            // Enterprise slugをチェックする関数
+            async function checkEnterpriseSlug(slug) {
+                return new Promise((resolve) => {
+                    const timeout = setTimeout(() => {
+                        resolve({ available: null, error: 'タイムアウト' });
+                    }, 10000);
+                    
+                    // img要素を使った存在チェック
+                    const img = new Image();
+                    const startTime = Date.now();
+                    
+                    img.onload = function() {
+                        clearTimeout(timeout);
+                        const loadTime = Date.now() - startTime;
+                        console.log(`Enterprise slug "${slug}" の画像が読み込まれました (${loadTime}ms)`);
+                        // 画像が読み込めた = ページが存在する可能性が高い
+                        resolve({ available: false, method: 'image-load', loadTime });
+                    };
+                    
+                    img.onerror = function() {
+                        clearTimeout(timeout);
+                        const loadTime = Date.now() - startTime;
+                        console.log(`Enterprise slug "${slug}" の画像読み込みエラー (${loadTime}ms)`);
+                        
+                        // 短時間でのエラー = 404の可能性が高い
+                        if (loadTime < 3000) {
+                            resolve({ available: true, method: 'image-error-fast', loadTime });
+                        } else {
+                            // 時間がかかった場合は不明
+                            resolve({ available: null, method: 'image-error-slow', loadTime });
+                        }
+                    };
+                    
+                    // GitHub Enterprise ページのfaviconをチェック
+                    img.src = `https://github.com/enterprises/${encodeURIComponent(slug)}/favicon.ico?t=${Date.now()}`;
+                });
+            }
+            
+            // Enterprise slugチェックボタンのイベントリスナー
+            checkSlugBtn.addEventListener('click', async function() {
+                console.log('Enterprise slugチェックボタンがクリックされました');
+                
+                const slug = slugInput.value.trim();
+                slugResult.innerHTML = '';
+                slugResult.className = 'result';
+                
+                if (!slug) {
+                    slugResult.innerHTML = 'Enterprise slugを入力してください';
+                    slugResult.className = 'result error';
+                    return;
+                }
+                
+                if (!isValidSlug(slug)) {
+                    slugResult.innerHTML = '❌ <strong>形式エラー:</strong> 英数字とハイフンのみ使用可能';
+                    slugResult.className = 'result error';
+                    return;
+                }
+                
+                // ボタンを無効化
+                checkSlugBtn.disabled = true;
+                checkSlugBtn.textContent = 'チェック中...';
+                slugResult.innerHTML = '🔍 Enterprise slugを確認中...';
+                slugResult.className = 'result';
+                
+                try {
+                    console.log('Enterprise slugをチェック中:', slug);
+                    const result = await checkEnterpriseSlug(slug);
+                    
+                    console.log('チェック結果:', result);
+                    
+                    if (result.available === true) {
+                        slugResult.innerHTML = '✅ <strong>利用可能です</strong> - このslugは使用されていない可能性が高いです';
+                        slugResult.className = 'result success';
+                    } else if (result.available === false) {
+                        slugResult.innerHTML = '❌ <strong>利用できません</strong> - このslugは既に使用されている可能性が高いです';
+                        slugResult.className = 'result error';
+                    } else {
+                        slugResult.innerHTML = '⚠️ <strong>判定困難</strong> - 手動確認をお勧めします。「ページを開く」ボタンで確認してください';
+                        slugResult.className = 'result';
+                    }
+                } catch (error) {
+                    console.error('Enterprise slugチェックエラー:', error);
+                    slugResult.innerHTML = '❌ <strong>チェックエラー:</strong> 手動確認をお勧めします';
+                    slugResult.className = 'result error';
+                } finally {
+                    // ボタンを再有効化
+                    checkSlugBtn.disabled = false;
+                    checkSlugBtn.textContent = 'チェック';
+                }
+            });
+            
             // Enterprise slugページを開くボタンのイベントリスナー
             openSlugBtn.addEventListener('click', function() {
-                console.log('Enterprise slugボタンがクリックされました');
+                console.log('Enterprise slugページを開くボタンがクリックされました');
                 
                 const slug = slugInput.value.trim();
                 if (!slug) {
@@ -304,7 +411,7 @@
             
             slugInput.addEventListener('keypress', function(event) {
                 if (event.key === 'Enter') {
-                    openSlugBtn.click();
+                    checkSlugBtn.click();
                 }
             });
             
