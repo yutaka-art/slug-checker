@@ -118,10 +118,45 @@
             border-radius: 3px;
             font-family: 'SFMono-Regular', Consolas, monospace;
         }
+        
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .warning h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #856404;
+        }
+        
+        .warning ul {
+            margin-bottom: 0;
+            padding-left: 20px;
+        }
+        
+        .warning li {
+            margin-bottom: 5px;
+        }
     </style>
 </head>
 <body>
     <h1>GitHub 利用可否チェック</h1>
+    
+    <div class="warning">
+        <h3>⚠️ 重要な注意事項</h3>
+        <p><strong>Enterprise Slugの正確な判定のため、以下の手順を推奨します：</strong></p>
+        <ul>
+            <li>GitHubからサインアウトしてから本ページを使用してください</li>
+            <li>または、<strong>シークレット/プライベートブラウザモード</strong>で本ページを開いてください</li>
+            <li>GitHubにサインインしている状態では、Enterprise Slugの有効性を正確に確認できません</li>
+        </ul>
+        <p>※ GitHubユーザー名チェックは、サインイン状態に関係なく正常に動作します。</p>
+    </div>
     
     <div class="container">
         <h2>GitHub ユーザー名チェック</h2>
@@ -141,19 +176,16 @@
         <h2>Enterprise Slug 存在確認</h2>
         
         <div class="note">
-            <strong>注意:</strong> 静的サイトではCORS制約により自動チェックができません。<br>
-            下のボタンで <code>https://github.com/enterprises/&lt;slug&gt;</code> を開き、
-            404エラーが表示されるかを目視で確認してください。
+            <strong>重要:</strong> 正確な判定のため、GitHubからサインアウトまたはシークレットモードで実行してください。<br><br>
+            <strong>判定方法:</strong> 下のボタンで <code>https://github.com/enterprises/&lt;slug&gt;</code> を開き、結果を確認してください。<br>
+            • <strong>404エラー表示</strong> → そのslugは使用可能です<br>
+            • <strong>ページ表示/ログイン画面</strong> → そのslugは既に使用中です<br>
+            • <strong>アクセス拒否</strong> → 判定が困難です（再試行推奨）
         </div>
         
         <div class="input-group">
             <input type="text" id="slugInput" placeholder="例: acme-enterprise">
             <button type="button" id="openSlugBtn">ページを開く</button>
-        </div>
-        
-        <div class="info">
-            💡 404エラー → 使用可能な可能性が高い<br>
-            💡 ページが表示される/ログイン画面 → 既に使用中
         </div>
     </div>
 
