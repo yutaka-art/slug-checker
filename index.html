@@ -176,17 +176,27 @@
         <h2>Enterprise Slug 存在確認</h2>
         
         <div class="note">
-            <strong>自動判定機能:</strong> ページ内で自動的にslugの利用可否を判定します。<br>
-            <strong>推奨:</strong> より正確な判定のため、GitHubからサインアウトまたはシークレットモードでの使用を推奨します。
+            <strong>重要:</strong> Enterprise Slugの確実な判定は技術的制約により自動化が困難です。<br>
+            下の手順で手動確認を行ってください：
+            <ol style="margin: 10px 0; padding-left: 20px;">
+                <li>GitHubからサインアウト（または<strong>シークレットモード</strong>で実行）</li>
+                <li>「ページを開く」ボタンをクリック</li>
+                <li>開いたページの結果を確認</li>
+            </ol>
         </div>
         
         <div class="input-group">
             <input type="text" id="slugInput" placeholder="例: acme-enterprise">
-            <button type="button" id="checkSlugBtn">チェック</button>
             <button type="button" id="openSlugBtn">ページを開く</button>
         </div>
         
-        <div id="slugResult" class="result"></div>
+        <div class="note" style="background-color: #f0f8ff; border-color: #b6d7ff;">
+            <strong>📋 判定方法:</strong><br>
+            • <strong>404 Not Found</strong> → ✅ <span style="color: #1a7f37;">そのslugは利用可能です</span><br>
+            • <strong>ページが表示される</strong> → ❌ <span style="color: #d1242f;">そのslugは既に使用中です</span><br>
+            • <strong>ログイン画面への誘導</strong> → ❌ <span style="color: #d1242f;">そのslugは既に使用中です</span><br>
+            • <strong>アクセス拒否</strong> → ⚠️ <span style="color: #bf8700;">判定困難（再試行推奨）</span>
+        </div>
     </div>
 
     <script>
@@ -199,14 +209,17 @@
             const checkUsernameBtn = document.getElementById('checkUsernameBtn');
             const usernameResult = document.getElementById('usernameResult');
             const slugInput = document.getElementById('slugInput');
-            const checkSlugBtn = document.getElementById('checkSlugBtn');
             const openSlugBtn = document.getElementById('openSlugBtn');
-            const slugResult = document.getElementById('slugResult');
             
             // 要素の存在確認
             if (!usernameInput || !checkUsernameBtn || !usernameResult) {
                 console.error('ユーザー名チェック用の要素が見つかりません');
                 document.body.innerHTML = '<h1>エラー: ページの要素が正しく読み込まれませんでした</h1>';
+                return;
+            }
+            
+            if (!slugInput || !openSlugBtn) {
+                console.error('Enterprise slug用の要素が見つかりません');
                 return;
             }
             
@@ -282,253 +295,7 @@
                 }
             });
             
-            // Enterprise slug用の要素存在確認
-            if (!slugInput || !checkSlugBtn || !openSlugBtn || !slugResult) {
-                console.error('Enterprise slug用の要素が見つかりません');
-                return;
-            }
-            
             console.log('Enterprise slug要素が正常に取得されました');
-            
-            // Enterprise slugの有効性をチェックする関数
-            function isValidSlug(slug) {
-                // 基本的な形式チェック（英数字とハイフン）
-                return /^[a-zA-Z0-9-]+$/.test(slug) && slug.length >= 1 && slug.length <= 100;
-            }
-            
-            // Enterprise slugをチェックする関数（さらに改良版）
-            async function checkEnterpriseSlug(slug) {
-                return new Promise((resolve) => {
-                    let resolved = false;
-                    const results = [];
-                    let successDetected = false;
-                    
-                    const finalTimeout = setTimeout(() => {
-                        if (!resolved) {
-                            resolved = true;
-                            console.log('=== Enterprise slug チェック最終結果 ===');
-                            console.log('全ての結果:', results);
-                            console.log('successDetected:', successDetected);
-                            
-                            if (successDetected) {
-                                resolve({ available: false, method: 'timeout-but-success-detected', confidence: 'medium', results });
-                            } else {
-                                const errorCount = results.filter(r => !r.success).length;
-                                if (errorCount >= 3) {
-                                    resolve({ available: true, method: 'timeout-multiple-errors', confidence: 'medium', results });
-                                } else {
-                                    resolve({ available: null, method: 'timeout-unknown', confidence: 'low', results });
-                                }
-                            }
-                        }
-                    }, 12000);
-                    
-                    const resolveWith = (result) => {
-                        if (!resolved) {
-                            resolved = true;
-                            clearTimeout(finalTimeout);
-                            console.log('=== Enterprise slug チェック確定結果 ===');
-                            console.log('確定結果:', result);
-                            console.log('全結果:', results);
-                            resolve(result);
-                        }
-                    };
-                    
-                    // 方法1: メインページのfetch試行（no-cors mode）
-                    setTimeout(async () => {
-                        try {
-                            console.log('=== 方法1: fetch no-cors試行 ===');
-                            const controller = new AbortController();
-                            setTimeout(() => controller.abort(), 5000);
-                            
-                            const response = await fetch(`https://github.com/enterprises/${encodeURIComponent(slug)}`, {
-                                method: 'HEAD',
-                                mode: 'no-cors',
-                                signal: controller.signal
-                            });
-                            
-                            console.log('fetch response:', response);
-                            results.push({ method: 'fetch-no-cors', success: true, status: response.status, type: response.type });
-                            successDetected = true;
-                            resolveWith({ available: false, method: 'fetch-no-cors-success', confidence: 'high', results });
-                        } catch (error) {
-                            console.log('fetch error:', error.name, error.message);
-                            results.push({ method: 'fetch-no-cors', success: false, error: error.name });
-                        }
-                    }, 500);
-                    
-                    // 方法2: robots.txt チェック
-                    setTimeout(() => {
-                        const img = new Image();
-                        const startTime = Date.now();
-                        
-                        img.onload = function() {
-                            const loadTime = Date.now() - startTime;
-                            console.log(`=== 方法2: robots.txt 成功 ${loadTime}ms ===`);
-                            results.push({ method: 'robots-txt', success: true, loadTime });
-                            successDetected = true;
-                            resolveWith({ available: false, method: 'robots-txt-success', confidence: 'high', loadTime, results });
-                        };
-                        
-                        img.onerror = function() {
-                            const loadTime = Date.now() - startTime;
-                            console.log(`=== 方法2: robots.txt 失敗 ${loadTime}ms ===`);
-                            results.push({ method: 'robots-txt', success: false, loadTime });
-                        };
-                        
-                        img.src = `https://github.com/enterprises/${encodeURIComponent(slug)}/robots.txt?t=${Date.now()}`;
-                    }, 1000);
-                    
-                    // 方法3: CSS ファイルチェック
-                    setTimeout(() => {
-                        const link = document.createElement('link');
-                        const startTime = Date.now();
-                        
-                        link.onload = function() {
-                            const loadTime = Date.now() - startTime;
-                            console.log(`=== 方法3: CSS 成功 ${loadTime}ms ===`);
-                            results.push({ method: 'css-file', success: true, loadTime });
-                            successDetected = true;
-                            document.head.removeChild(link);
-                            resolveWith({ available: false, method: 'css-file-success', confidence: 'high', loadTime, results });
-                        };
-                        
-                        link.onerror = function() {
-                            const loadTime = Date.now() - startTime;
-                            console.log(`=== 方法3: CSS 失敗 ${loadTime}ms ===`);
-                            results.push({ method: 'css-file', success: false, loadTime });
-                            document.head.removeChild(link);
-                        };
-                        
-                        link.rel = 'stylesheet';
-                        link.href = `https://github.com/enterprises/${encodeURIComponent(slug)}/favicon.ico?t=${Date.now()}`;
-                        document.head.appendChild(link);
-                    }, 2000);
-                    
-                    // 方法4: GitHub API風のチェック（GitHubのPublic API）
-                    setTimeout(async () => {
-                        try {
-                            console.log('=== 方法4: GitHub API check ===');
-                            // これは公開されているかもしれないエンドポイント
-                            const response = await fetch(`https://api.github.com/orgs/${encodeURIComponent(slug)}`, {
-                                method: 'GET'
-                            });
-                            
-                            console.log('GitHub API response:', response.status);
-                            
-                            if (response.status === 200) {
-                                console.log('GitHub API: 組織として存在');
-                                results.push({ method: 'github-api', success: true, status: response.status });
-                                successDetected = true;
-                                resolveWith({ available: false, method: 'github-api-org-exists', confidence: 'high', results });
-                            } else {
-                                console.log('GitHub API: 組織として不存在');
-                                results.push({ method: 'github-api', success: false, status: response.status });
-                            }
-                        } catch (error) {
-                            console.log('GitHub API error:', error);
-                            results.push({ method: 'github-api', success: false, error: error.message });
-                        }
-                    }, 3000);
-                    
-                    // 方法5: XMLHttpRequest試行
-                    setTimeout(() => {
-                        console.log('=== 方法5: XHR試行 ===');
-                        const xhr = new XMLHttpRequest();
-                        const startTime = Date.now();
-                        
-                        xhr.onreadystatechange = function() {
-                            if (xhr.readyState === 4) {
-                                const loadTime = Date.now() - startTime;
-                                console.log(`XHR完了: status=${xhr.status}, ${loadTime}ms`);
-                                
-                                if (xhr.status === 200 || xhr.status === 0) {
-                                    results.push({ method: 'xhr', success: true, status: xhr.status, loadTime });
-                                    successDetected = true;
-                                    resolveWith({ available: false, method: 'xhr-success', confidence: 'medium', loadTime, results });
-                                } else {
-                                    results.push({ method: 'xhr', success: false, status: xhr.status, loadTime });
-                                }
-                            }
-                        };
-                        
-                        xhr.onerror = function() {
-                            const loadTime = Date.now() - startTime;
-                            console.log(`XHR error: ${loadTime}ms`);
-                            results.push({ method: 'xhr', success: false, loadTime });
-                        };
-                        
-                        try {
-                            xhr.open('HEAD', `https://github.com/enterprises/${encodeURIComponent(slug)}`, true);
-                            xhr.send();
-                        } catch (error) {
-                            console.log('XHR exception:', error);
-                            results.push({ method: 'xhr', success: false, error: error.message });
-                        }
-                    }, 4000);
-                });
-            }
-            
-            // Enterprise slugチェックボタンのイベントリスナー
-            checkSlugBtn.addEventListener('click', async function() {
-                console.log('Enterprise slugチェックボタンがクリックされました');
-                
-                const slug = slugInput.value.trim();
-                slugResult.innerHTML = '';
-                slugResult.className = 'result';
-                
-                if (!slug) {
-                    slugResult.innerHTML = 'Enterprise slugを入力してください';
-                    slugResult.className = 'result error';
-                    return;
-                }
-                
-                if (!isValidSlug(slug)) {
-                    slugResult.innerHTML = '❌ <strong>形式エラー:</strong> 英数字とハイフンのみ使用可能';
-                    slugResult.className = 'result error';
-                    return;
-                }
-                
-                // ボタンを無効化
-                checkSlugBtn.disabled = true;
-                checkSlugBtn.textContent = 'チェック中...';
-                slugResult.innerHTML = '🔍 Enterprise slugを確認中...';
-                slugResult.className = 'result';
-                
-                try {
-                    console.log('Enterprise slugをチェック中:', slug);
-                    const result = await checkEnterpriseSlug(slug);
-                    
-                    console.log('チェック結果:', result);
-                    
-                    const confidenceText = {
-                        'high': '信頼度: 高',
-                        'medium': '信頼度: 中',
-                        'low': '信頼度: 低'
-                    };
-                    
-                    const confidence = result.confidence ? ` (${confidenceText[result.confidence]})` : '';
-                    
-                    if (result.available === true) {
-                        slugResult.innerHTML = `✅ <strong>利用可能です</strong> - このslugは使用されていない可能性が高いです${confidence}`;
-                        slugResult.className = 'result success';
-                    } else if (result.available === false) {
-                        slugResult.innerHTML = `❌ <strong>利用できません</strong> - このslugは既に使用されています${confidence}`;
-                        slugResult.className = 'result error';
-                    } else {
-                        slugResult.innerHTML = '⚠️ <strong>判定困難</strong> - ネットワークまたはアクセス制限により判定できませんでした。「ページを開く」ボタンで手動確認をお勧めします';
-                        slugResult.className = 'result';
-                    }
-                } catch (error) {
-                    console.error('Enterprise slugチェックエラー:', error);
-                    slugResult.innerHTML = '❌ <strong>チェックエラー:</strong> 手動確認をお勧めします';
-                    slugResult.className = 'result error';
-                } finally {
-                    // ボタンを再有効化
-                    checkSlugBtn.disabled = false;
-                    checkSlugBtn.textContent = 'チェック';
-                }
-            });
             
             // Enterprise slugページを開くボタンのイベントリスナー
             openSlugBtn.addEventListener('click', function() {
@@ -537,6 +304,12 @@
                 const slug = slugInput.value.trim();
                 if (!slug) {
                     alert('Enterprise slugを入力してください');
+                    return;
+                }
+                
+                // 基本的な形式チェック
+                if (!/^[a-zA-Z0-9-]+$/.test(slug) || slug.length < 1 || slug.length > 100) {
+                    alert('Enterprise slugの形式が正しくありません\n（英数字とハイフンのみ、1-100文字）');
                     return;
                 }
                 
@@ -554,7 +327,7 @@
             
             slugInput.addEventListener('keypress', function(event) {
                 if (event.key === 'Enter') {
-                    checkSlugBtn.click();
+                    openSlugBtn.click();
                 }
             });
             
