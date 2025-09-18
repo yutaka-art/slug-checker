@@ -296,41 +296,92 @@
                 return /^[a-zA-Z0-9-]+$/.test(slug) && slug.length >= 1 && slug.length <= 100;
             }
             
-            // Enterprise slugをチェックする関数
+            // Enterprise slugをチェックする関数（改良版）
             async function checkEnterpriseSlug(slug) {
                 return new Promise((resolve) => {
-                    const timeout = setTimeout(() => {
-                        resolve({ available: null, error: 'タイムアウト' });
-                    }, 10000);
+                    let resolved = false;
+                    const results = [];
                     
-                    // img要素を使った存在チェック
-                    const img = new Image();
-                    const startTime = Date.now();
+                    const finalTimeout = setTimeout(() => {
+                        if (!resolved) {
+                            resolved = true;
+                            console.log('Enterprise slug チェック結果:', results);
+                            resolve({ available: null, error: 'タイムアウト', results });
+                        }
+                    }, 15000);
                     
-                    img.onload = function() {
-                        clearTimeout(timeout);
-                        const loadTime = Date.now() - startTime;
-                        console.log(`Enterprise slug "${slug}" の画像が読み込まれました (${loadTime}ms)`);
-                        // 画像が読み込めた = ページが存在する可能性が高い
-                        resolve({ available: false, method: 'image-load', loadTime });
-                    };
-                    
-                    img.onerror = function() {
-                        clearTimeout(timeout);
-                        const loadTime = Date.now() - startTime;
-                        console.log(`Enterprise slug "${slug}" の画像読み込みエラー (${loadTime}ms)`);
-                        
-                        // 短時間でのエラー = 404の可能性が高い
-                        if (loadTime < 3000) {
-                            resolve({ available: true, method: 'image-error-fast', loadTime });
-                        } else {
-                            // 時間がかかった場合は不明
-                            resolve({ available: null, method: 'image-error-slow', loadTime });
+                    const resolveWith = (result) => {
+                        if (!resolved) {
+                            resolved = true;
+                            clearTimeout(finalTimeout);
+                            console.log('Enterprise slug チェック結果:', results);
+                            resolve(result);
                         }
                     };
                     
-                    // GitHub Enterprise ページのfaviconをチェック
-                    img.src = `https://github.com/enterprises/${encodeURIComponent(slug)}/favicon.ico?t=${Date.now()}`;
+                    // 方法1: faviconチェック
+                    const img1 = new Image();
+                    const startTime1 = Date.now();
+                    
+                    img1.onload = function() {
+                        const loadTime = Date.now() - startTime1;
+                        results.push({ method: 'favicon-load', success: true, loadTime });
+                        console.log(`favicon読み込み成功: ${loadTime}ms`);
+                        // faviconが読み込めた = 存在する可能性が高い
+                        resolveWith({ available: false, method: 'favicon-load', loadTime, confidence: 'high' });
+                    };
+                    
+                    img1.onerror = function() {
+                        const loadTime = Date.now() - startTime1;
+                        results.push({ method: 'favicon-error', success: false, loadTime });
+                        console.log(`favicon読み込み失敗: ${loadTime}ms`);
+                    };
+                    
+                    img1.src = `https://github.com/enterprises/${encodeURIComponent(slug)}/favicon.ico?t=${Date.now()}`;
+                    
+                    // 方法2: GitHub avatarチェック
+                    setTimeout(() => {
+                        const img2 = new Image();
+                        const startTime2 = Date.now();
+                        
+                        img2.onload = function() {
+                            const loadTime = Date.now() - startTime2;
+                            results.push({ method: 'avatar-load', success: true, loadTime });
+                            console.log(`avatar読み込み成功: ${loadTime}ms`);
+                            // avatarが読み込めた = 存在する可能性が高い
+                            resolveWith({ available: false, method: 'avatar-load', loadTime, confidence: 'high' });
+                        };
+                        
+                        img2.onerror = function() {
+                            const loadTime = Date.now() - startTime2;
+                            results.push({ method: 'avatar-error', success: false, loadTime });
+                            console.log(`avatar読み込み失敗: ${loadTime}ms`);
+                        };
+                        
+                        // 一般的なGitHub Enterprise avatarパス
+                        img2.src = `https://avatars.githubusercontent.com/enterprises/${encodeURIComponent(slug)}?s=200&t=${Date.now()}`;
+                    }, 1000);
+                    
+                    // 方法3: 総合判定（5秒後）
+                    setTimeout(() => {
+                        if (!resolved) {
+                            const successCount = results.filter(r => r.success).length;
+                            const errorCount = results.filter(r => !r.success).length;
+                            
+                            console.log(`判定結果 - 成功: ${successCount}, 失敗: ${errorCount}`);
+                            
+                            if (successCount > 0) {
+                                // 何かが読み込めた = 存在する可能性が高い
+                                resolveWith({ available: false, method: 'combined-success', confidence: 'medium', results });
+                            } else if (errorCount >= 2) {
+                                // 複数の方法で失敗 = 存在しない可能性が高い
+                                resolveWith({ available: true, method: 'combined-error', confidence: 'medium', results });
+                            } else {
+                                // 判定困難
+                                resolveWith({ available: null, method: 'combined-unknown', confidence: 'low', results });
+                            }
+                        }
+                    }, 8000);
                 });
             }
             
@@ -366,14 +417,22 @@
                     
                     console.log('チェック結果:', result);
                     
+                    const confidenceText = {
+                        'high': '信頼度: 高',
+                        'medium': '信頼度: 中',
+                        'low': '信頼度: 低'
+                    };
+                    
+                    const confidence = result.confidence ? ` (${confidenceText[result.confidence]})` : '';
+                    
                     if (result.available === true) {
-                        slugResult.innerHTML = '✅ <strong>利用可能です</strong> - このslugは使用されていない可能性が高いです';
+                        slugResult.innerHTML = `✅ <strong>利用可能です</strong> - このslugは使用されていない可能性が高いです${confidence}`;
                         slugResult.className = 'result success';
                     } else if (result.available === false) {
-                        slugResult.innerHTML = '❌ <strong>利用できません</strong> - このslugは既に使用されている可能性が高いです';
+                        slugResult.innerHTML = `❌ <strong>利用できません</strong> - このslugは既に使用されています${confidence}`;
                         slugResult.className = 'result error';
                     } else {
-                        slugResult.innerHTML = '⚠️ <strong>判定困難</strong> - 手動確認をお勧めします。「ページを開く」ボタンで確認してください';
+                        slugResult.innerHTML = '⚠️ <strong>判定困難</strong> - ネットワークまたはアクセス制限により判定できませんでした。「ページを開く」ボタンで手動確認をお勧めします';
                         slugResult.className = 'result';
                     }
                 } catch (error) {
