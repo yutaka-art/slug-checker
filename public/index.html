@@ -377,16 +377,24 @@
                     });
                     
                     if (response.ok) {
-                        const userData = await response.json();
-                        console.log('GitHub認証成功:', userData);
-                        this.setUser({
-                            username: userData.username,
-                            avatar: userData.avatar,
-                            name: userData.name || userData.username
-                        });
-                        return true;
+                        const responseData = await response.json();
+                        console.log('GitHub認証API応答:', responseData);
+                        
+                        if (responseData.authenticated && responseData.user) {
+                            console.log('GitHub認証成功:', responseData.user);
+                            this.setUser({
+                                username: responseData.user.username,
+                                avatar: responseData.user.avatar,
+                                name: responseData.user.name || responseData.user.username
+                            });
+                            return true;
+                        } else {
+                            console.log('認証されていません:', responseData);
+                            return false;
+                        }
                     } else {
-                        console.log('GitHub API認証失敗:', response.status);
+                        const errorData = await response.json().catch(() => ({}));
+                        console.log('GitHub API認証失敗:', response.status, errorData);
                         return false;
                     }
                 } catch (error) {
@@ -400,6 +408,15 @@
                 const urlParams = new URLSearchParams(window.location.search);
                 const code = urlParams.get('code'); // OAuth認証コード
                 const state = urlParams.get('state'); // CSRF保護用
+                const auth = urlParams.get('auth'); // 認証成功フラグ
+                const error = urlParams.get('error'); // エラー情報
+                
+                if (error) {
+                    console.error('OAuth認証エラー:', error);
+                    // URLパラメータをクリア
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    return true; // エラーでも処理済みとして扱う
+                }
                 
                 if (code) {
                     console.log('GitHub OAuthリダイレクトを検出:', { code, state });
@@ -407,6 +424,34 @@
                     window.history.replaceState({}, document.title, window.location.pathname);
                     return true;
                 }
+                
+                if (auth === 'success') {
+                    console.log('GitHub認証成功フラグを検出');
+                    // URLパラメータをクリア
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    // 認証成功時は、セッション情報を即座に取得
+                    console.log('認証成功後、1秒後にセッション情報を取得します...');
+                    setTimeout(async () => {
+                        console.log('セッション情報の取得を開始...');
+                        const success = await this.detectGitHubSession();
+                        if (!success) {
+                            console.error('セッション情報の取得に失敗しました');
+                            // さらに詳細なデバッグ
+                            try {
+                                const debugResponse = await fetch('/api/auth/user', {
+                                    method: 'GET',
+                                    credentials: 'include'
+                                });
+                                const debugData = await debugResponse.text();
+                                console.log('デバッグ用API応答:', debugResponse.status, debugData);
+                            } catch (debugError) {
+                                console.error('デバッグAPI呼び出しエラー:', debugError);
+                            }
+                        }
+                    }, 1000);
+                    return true;
+                }
+                
                 return false;
             }
             
