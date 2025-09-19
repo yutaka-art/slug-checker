@@ -1,5 +1,4 @@
 // GitHub OAuth ログインを開始するエンドポイント
-import { parse } from 'url';
 
 export default function handler(req, res) {
   if (req.method !== 'GET') {

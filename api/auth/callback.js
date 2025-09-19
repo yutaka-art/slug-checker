@@ -1,5 +1,4 @@
 // GitHub OAuth コールバックを処理するエンドポイント
-import { parse } from 'url';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -7,7 +6,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { query } = parse(req.url, true);
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    const query = Object.fromEntries(url.searchParams);
     const { code, state, error } = query;
 
     // エラーがある場合の処理
