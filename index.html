@@ -30,6 +30,67 @@
             padding-bottom: 10px;
         }
         
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px 0;
+        }
+        
+        .auth-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .sign-in-btn {
+            background-color: #0969da;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .sign-in-btn:hover {
+            background-color: #0860ca;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+        
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 1px solid #d0d7de;
+        }
+        
+        .sign-out-btn {
+            background: none;
+            border: 1px solid #d0d7de;
+            color: #656d76;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .sign-out-btn:hover {
+            background-color: #f6f8fa;
+        }
+        
         h2 {
             color: #24292f;
             margin-top: 0;
@@ -160,18 +221,41 @@
     </style>
 </head>
 <body>
-    <h1>GitHub 利用可否チェック</h1>
-    
-    <div class="warning">
-        <h3>⚠️ 重要な注意事項</h3>
-        <p><strong>Enterprise Slug検証を行うため、以下の手順を実行してください：</strong></p>
-        <ul>
-            <li><strong>事前にGitHubにサインインしてください</strong> - Enterprise作成ページへのアクセスに必要です</li>
-            <li>下記のボタンで新しいタブでEnterprise作成ページを開いてSlugの有効性を確認できます</li>
-            <li>GitHubにサインインしていない場合は、新しいタブでサインインが求められます</li>
-        </ul>
-        <p>※ GitHubユーザー名チェックは、サインイン状態に関係なく正常に動作します。</p>
+    <div class="header">
+        <h1 style="margin: 0; border: none; padding: 0;">GitHub 利用可否チェック</h1>
+        <div class="auth-section">
+            <div id="authDisplay" style="font-size: 14px; color: #656d76;">
+                GitHub認証状態を自動検出中...
+            </div>
+        </div>
     </div>
+    
+    <div class="warning" id="authWarning">
+        <h3>⚠️ 重要な注意事項</h3>
+        <div id="authWarningContent">
+            <p><strong>GitHub認証状態の自動検出を試行中...</strong></p>
+            <p>Enterprise Slug確認にはGitHub認証が必要です。下記ボタンでサインインしてください。</p>
+            <p>※ GitHubユーザー名チェックは、認証状態に関係なく正常に動作します。</p>
+            
+            <div style="margin-top: 15px;">
+                <a href="/api/auth/login" 
+                   style="
+                       display: inline-block;
+                       background-color: #0969da;
+                       color: white;
+                       text-decoration: none;
+                       padding: 10px 20px;
+                       border-radius: 6px;
+                       font-weight: 500;
+                   ">
+                   GitHubでサインイン
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- GitHub認証状態検出結果 -->
+    <div id="authStatus"></div>
     
     <div class="container">
         <h2>GitHub ユーザー名チェック</h2>
@@ -271,11 +355,185 @@
     </div>
 
     <script>
-        // ページ読み込み完了を待つ
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('GitHub利用可否チェックページが読み込まれました');
+        // GitHub認証状態検出の試行
+        class GitHubSessionDetector {
+            constructor() {
+                this.isAuthenticated = false;
+                this.user = null;
+            }
             
-            // 要素を取得
+            // Vercel OAuth APIを使った認証状態の検出
+            async detectGitHubSession() {
+                try {
+                    console.log('GitHub認証状態の検出を試行中...');
+                    
+                    // Vercel API経由で認証状態をチェック
+                    const response = await fetch('/api/auth/user', {
+                        method: 'GET',
+                        credentials: 'include', // クッキーを含める
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const userData = await response.json();
+                        console.log('GitHub認証成功:', userData);
+                        this.setUser({
+                            username: userData.username,
+                            avatar: userData.avatar,
+                            name: userData.name || userData.username
+                        });
+                        return true;
+                    } else {
+                        console.log('GitHub API認証失敗:', response.status);
+                        return false;
+                    }
+                } catch (error) {
+                    console.log('GitHub認証状態検出エラー:', error);
+                    return false;
+                }
+            }
+            
+            // OAuth認証コードからのリダイレクト検出
+            checkForGitHubRedirect() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const code = urlParams.get('code'); // OAuth認証コード
+                const state = urlParams.get('state'); // CSRF保護用
+                
+                if (code) {
+                    console.log('GitHub OAuthリダイレクトを検出:', { code, state });
+                    // URLパラメータをクリア
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    return true;
+                }
+                return false;
+            }
+            
+            // ユーザー情報を設定
+            setUser(userData) {
+                this.user = userData;
+                this.isAuthenticated = true;
+                this.updateUI();
+            }
+            
+            // UIを更新
+            updateUI() {
+                const authDisplay = document.getElementById('authDisplay');
+                const authStatus = document.getElementById('authStatus');
+                const authWarning = document.getElementById('authWarning');
+                
+                if (this.isAuthenticated && this.user) {
+                    // 認証済みの場合
+                    if (authDisplay) {
+                        authDisplay.innerHTML = `
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <img src="${this.user.avatar}" alt="${this.user.username}" style="width: 24px; height: 24px; border-radius: 50%;">
+                                <span style="color: #24292f; font-weight: 500;">${this.user.username}</span>
+                                <a href="/api/auth/logout" style="color: #0969da; text-decoration: none; font-size: 12px;">ログアウト</a>
+                            </div>
+                        `;
+                    }
+                    
+                    if (authStatus) {
+                        authStatus.innerHTML = `
+                            <div style="background-color: #d4f8d4; border: 1px solid #4caf50; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                                <h3 style="margin: 0 0 10px 0; color: #2e7d32;">✅ GitHub認証成功</h3>
+                                <div style="display: flex; align-items: center; gap: 15px;">
+                                    <img src="${this.user.avatar}" alt="${this.user.username} Avatar" style="width: 50px; height: 50px; border-radius: 50%; border: 2px solid #4caf50;">
+                                    <div>
+                                        <strong>ユーザー名:</strong> ${this.user.username}<br>
+                                        ${this.user.name ? `<strong>表示名:</strong> ${this.user.name}<br>` : ''}
+                                        <strong>認証状態:</strong> サインイン済み
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    // 警告セクションを非表示
+                    if (authWarning) {
+                        authWarning.style.display = 'none';
+                    }
+                } else {
+                    // 未認証の場合
+                    if (authDisplay) {
+                        authDisplay.innerHTML = `
+                            <a href="/api/auth/login" 
+                               style="
+                                   background-color: #0969da;
+                                   color: white;
+                                   text-decoration: none;
+                                   padding: 8px 16px;
+                                   border-radius: 6px;
+                                   font-size: 14px;
+                                   font-weight: 500;
+                               ">
+                               GitHubでサインイン
+                            </a>
+                        `;
+                    }
+                    
+                    if (authStatus) {
+                        authStatus.innerHTML = `
+                            <div style="background-color: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                                <h3 style="margin: 0 0 10px 0; color: #856404;">⚠️ GitHub認証が必要です</h3>
+                                <p style="margin: 0; margin-bottom: 15px;">
+                                    Enterprise Slug確認機能を使用するには、GitHubアカウントでのサインインが必要です。
+                                </p>
+                                <a href="/api/auth/login" 
+                                   style="
+                                       display: inline-block;
+                                       background-color: #0969da;
+                                       color: white;
+                                       text-decoration: none;
+                                       padding: 10px 20px;
+                                       border-radius: 6px;
+                                       font-weight: 500;
+                                   ">
+                                   GitHubでサインイン
+                                </a>
+                            </div>
+                        `;
+                    }
+                    
+                    // 警告セクションを表示
+                    if (authWarning) {
+                        authWarning.style.display = 'block';
+                    }
+                }
+            }
+            
+            // 全ての検出方法を試行
+            async detectAuthentication() {
+                console.log('GitHub認証状態の検出を開始...');
+                
+                // OAuth認証コードの確認
+                if (this.checkForGitHubRedirect()) {
+                    return;
+                }
+                
+                // Vercel API経由での認証チェック
+                const apiSuccess = await this.detectGitHubSession();
+                if (apiSuccess) {
+                    return;
+                }
+                
+                // 認証されていない場合のUI更新
+                this.updateUI();
+            }
+        }
+        
+        // グローバルな認証検出インスタンス
+        const githubDetector = new GitHubSessionDetector();
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('GitHub認証状態検出ページが読み込まれました');
+            
+            // 認証状態の検出を実行
+            githubDetector.detectAuthentication();
+            
+            // 既存のコード - 要素を取得
             const usernameInput = document.getElementById('usernameInput');
             const checkUsernameBtn = document.getElementById('checkUsernameBtn');
             const usernameResult = document.getElementById('usernameResult');
