@@ -8,9 +8,13 @@ export default function handler(req, res) {
   try {
     // GitHub Apps OAuth設定
     const clientId = process.env.GITHUB_CLIENT_ID;
-    const redirectUri = process.env.VERCEL_URL 
-      ? `https://${process.env.VERCEL_URL}/api/auth/callback`
-      : 'http://localhost:3000/api/auth/callback'; // 開発環境用
+    
+    // リダイレクトURIを動的に生成
+    const host = req.headers.host;
+    const protocol = host && host.includes('localhost') ? 'http' : 'https';
+    const redirectUri = `${protocol}://${host}/api/auth/callback`;
+
+    console.log('Generated redirect URI:', redirectUri);
 
     if (!clientId) {
       console.error('GITHUB_CLIENT_ID environment variable is not set');
