@@ -4,7 +4,7 @@ GitHubのユーザー名とEnterprise Slugの利用可否を簡単にチェッ�
 
 ## 🔗 サイトURL
 
-**https://slug-checker-kappa.vercel.app/**
+**https://slug-checker-labq.vercel.app/**
 
 ## 📋 機能
 
@@ -44,8 +44,6 @@ GitHubのユーザー名とEnterprise Slugの利用可否を簡単にチェッ�
 3. 新しいタブでGitHub公式のEnterprise作成ページが開きます
 4. 「Enterprise name」フィールドに希望するSlugを入力
 5. リアルタイムで有効性が確認できます
-   - ✅ **緑色のチェック** → 利用可能
-   - ❌ **赤色のエラー** → 既に使用中
 
 ## 🛠️ 技術仕様
 
