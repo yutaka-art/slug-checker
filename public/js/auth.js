@@ -114,7 +114,6 @@ class GitHubSessionDetector {
      */
     updateUI() {
         const authDisplay = document.getElementById('authDisplay');
-        const authStatus = document.getElementById('authStatus');
         
         if (this.isAuthenticated && this.user) {
             // 認証済みの場合
@@ -124,22 +123,6 @@ class GitHubSessionDetector {
                         <img src="${this.user.avatar}" alt="${this.user.username}" style="width: 24px; height: 24px; border-radius: 50%;">
                         <span style="color: #24292f; font-weight: 500;">${this.user.username}</span>
                         <a href="/api/auth/logout" style="color: #0969da; text-decoration: none; font-size: 12px;">ログアウト</a>
-                    </div>
-                `;
-            }
-            
-            if (authStatus) {
-                authStatus.innerHTML = `
-                    <div style="background-color: #d4f8d4; border: 1px solid #4caf50; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                        <h3 style="margin: 0 0 10px 0; color: #2e7d32;">✅ GitHub認証成功</h3>
-                        <div style="display: flex; align-items: center; gap: 15px;">
-                            <img src="${this.user.avatar}" alt="${this.user.username} Avatar" style="width: 50px; height: 50px; border-radius: 50%; border: 2px solid #4caf50;">
-                            <div>
-                                <strong>ユーザー名:</strong> ${this.user.username}<br>
-                                ${this.user.name ? `<strong>表示名:</strong> ${this.user.name}<br>` : ''}
-                                <strong>認証状態:</strong> サインイン済み
-                            </div>
-                        </div>
                     </div>
                 `;
             }
@@ -159,29 +142,6 @@ class GitHubSessionDetector {
                        ">
                        GitHubでサインイン
                     </a>
-                `;
-            }
-            
-            if (authStatus) {
-                authStatus.innerHTML = `
-                    <div style="background-color: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                        <h3 style="margin: 0 0 10px 0; color: #856404;">⚠️ GitHub認証が必要です</h3>
-                        <p style="margin: 0; margin-bottom: 15px;">
-                            Enterprise Slug確認機能を使用するには、GitHubアカウントでのサインインが必要です。
-                        </p>
-                        <a href="/api/auth/login" 
-                           style="
-                               display: inline-block;
-                               background-color: #0969da;
-                               color: white;
-                               text-decoration: none;
-                               padding: 10px 20px;
-                               border-radius: 6px;
-                               font-weight: 500;
-                           ">
-                           GitHubでサインイン
-                        </a>
-                    </div>
                 `;
             }
         }
