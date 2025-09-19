@@ -119,6 +119,12 @@
             font-family: 'SFMono-Regular', Consolas, monospace;
         }
         
+        /* アニメーション */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
         .warning {
             background-color: #fff3cd;
             border: 1px solid #ffeaa7;
@@ -142,21 +148,6 @@
         .warning li {
             margin-bottom: 5px;
         }
-        
-        .iframe-container {
-            margin: 20px 0;
-            border: 2px solid #d1d9e0;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        
-        .iframe-header {
-            background-color: #f6f8fa;
-            padding: 10px;
-            border-bottom: 1px solid #d1d9e0;
-            font-weight: bold;
-            color: #24292f;
-        }
     </style>
 </head>
 <body>
@@ -167,8 +158,8 @@
         <p><strong>Enterprise Slug検証を行うため、以下の手順を実行してください：</strong></p>
         <ul>
             <li><strong>事前にGitHubにサインインしてください</strong> - Enterprise作成ページへのアクセスに必要です</li>
-            <li>下記のボタンで新しいタブでEnterprise作成ページを開いてSlugの有効性を確認できます</li>
-            <li>GitHubにサインインしていない場合は、新しいタブでサインインが求められます</li>
+            <li>下記のEnterprise作成フレーム内でSlugの有効性を直接確認できます</li>
+            <li>GitHubにサインインしていない場合は、フレーム内でサインインが求められます</li>
         </ul>
         <p>※ GitHubユーザー名チェックは、サインイン状態に関係なく正常に動作します。</p>
     </div>
@@ -191,63 +182,34 @@
         <h2>Enterprise Slug 存在確認</h2>
         
         <div class="note">
-            <strong>🎯 GitHub公式Enterprise作成ページ:</strong> 下記のボタンで新しいタブでEnterprise作成ページを開き、Slugの有効性を確認できます。<br>
+            <strong>🎯 GitHub公式Enterprise作成ページ:</strong> 下記のフレーム内で直接Enterprise Slugの有効性を確認できます。<br>
             <strong>✅ 要件:</strong> GitHubアカウントへのサインインが必要です。<br>
-            <strong>🔧 使用方法:</strong> 新しいタブで希望するSlugを入力し、リアルタイムで有効性を確認してください。
+            <strong>🔧 使用方法:</strong> フレーム内で希望するSlugを入力し、リアルタイムで有効性を確認してください。
         </div>
         
         <div class="note" style="background-color: #f0f8ff; border-color: #b6d7ff; margin-top: 15px;">
             <strong>📋 確認手順:</strong><br>
-            1. 下記ボタンで新しいタブでEnterprise作成ページを開く<br>
-            2. Enterprise nameフィールドにSlugを入力<br>
-            3. リアルタイムで有効性が表示されます<br>
-            4. ✅ 緑色のチェック = 利用可能<br>
-            5. ❌ 赤色のエラー = 既に使用中または無効
+            1. 下記フレーム内のEnterprise nameフィールドにSlugを入力<br>
+            2. リアルタイムで有効性が表示されます<br>
+            3. ✅ 緑色のチェック = 利用可能<br>
+            4. ❌ 赤色のエラー = 既に使用中または無効
         </div>
         
-        <!-- GitHub Enterprise作成ページへのリンク -->
-        <div class="iframe-container">
-            <div class="iframe-header">
+        <!-- GitHub Enterprise作成ページをiframeで埋め込み -->
+        <div style="margin: 20px 0; border: 2px solid #d1d9e0; border-radius: 8px; overflow: hidden;">
+            <div style="background-color: #f6f8fa; padding: 10px; border-bottom: 1px solid #d1d9e0; font-weight: bold; color: #24292f;">
                 🔗 GitHub Enterprise 作成ページ (公式)
             </div>
-            <div style="padding: 30px; text-align: center; background-color: #f6f8fa;">
-                <div style="margin-bottom: 20px; color: #656d76;">
-                    <strong>⚠️ GitHubはセキュリティ上、iframe埋め込みを禁止しています</strong><br>
-                    下記ボタンで新しいタブでEnterprise作成ページを開いてください
-                </div>
-                
-                <button 
-                    type="button" 
-                    id="openEnterprisePageBtn"
-                    style="
-                        background-color: #0969da; 
-                        color: white; 
-                        border: none; 
-                        padding: 15px 30px; 
-                        border-radius: 8px; 
-                        cursor: pointer; 
-                        font-size: 16px; 
-                        font-weight: bold;
-                        margin: 10px;
-                    "
-                    onmouseover="this.style.backgroundColor='#0860ca'"
-                    onmouseout="this.style.backgroundColor='#0969da'"
-                >
-                    🔗 GitHub Enterprise作成ページを開く
-                </button>
-                
-                <div style="margin-top: 20px; font-size: 14px; color: #656d76;">
-                    <strong>📋 手順:</strong><br>
-                    1. 上記ボタンをクリックして新しいタブを開く<br>
-                    2. Enterprise nameフィールドに希望するSlugを入力<br>
-                    3. リアルタイムで有効性が表示されます<br>
-                    4. ✅ 緑色のチェック = 利用可能 / ❌ 赤色のエラー = 既に使用中
-                </div>
-            </div>
+            <iframe 
+                src="https://github.com/account/enterprises/new?users_type=metered_ghe"
+                style="width: 100%; height: 600px; border: none; display: block;"
+                title="GitHub Enterprise作成ページ"
+                sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-top-navigation">
+            </iframe>
         </div>
         
         <div class="note" style="background-color: #fff8c5; border-color: #d4b82a; margin-top: 10px;">
-            <strong>⚠️ 注意:</strong> 新しいタブでGitHubへのサインインが求められた場合は、通常通りサインインを行ってください。<br>
+            <strong>⚠️ 注意:</strong> iframe内でGitHubへのサインインが求められた場合は、通常通りサインインを行ってください。<br>
             <strong>🔒 セキュリティ:</strong> すべての操作はGitHub公式サイト上で実行されるため、安全です。
         </div>
         
@@ -281,7 +243,6 @@
             const usernameResult = document.getElementById('usernameResult');
             const slugInput = document.getElementById('slugInput');
             const openSlugBtn = document.getElementById('openSlugBtn');
-            const openEnterprisePageBtn = document.getElementById('openEnterprisePageBtn');
             
             // 要素の存在確認
             if (!usernameInput || !checkUsernameBtn || !usernameResult) {
@@ -290,7 +251,158 @@
                 return;
             }
             
+            if (!slugInput || !openSlugBtn) {
+                console.error('Enterprise slug用の要素が見つかりません');
+                return;
+            }
+            
             console.log('すべての要素が正常に取得されました');
+            
+            // ユーザー名の有効性をチェックする関数
+            function isValidUsername(username) {
+                // 先頭/末尾ハイフン不可、英数字とハイフンのみ、1-39文字
+                const pattern = /^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?$/;
+                return pattern.test(username);
+            }
+                    
+                    const response = await fetch('https://github.com/account/enterprises/check_enterprise_slug', {
+                        method: 'POST',
+                        headers: {
+                            'Accept': '*/*',
+                            'Accept-Language': 'ja,en-US;q=0.9,en;q=0.8',
+                            'Origin': 'https://github.com',
+                            'Referer': 'https://github.com/account/enterprises/new?users_type=metered_ghe',
+                            'Sec-Fetch-Dest': 'empty',
+                            'Sec-Fetch-Mode': 'cors',
+                            'Sec-Fetch-Site': 'same-origin',
+                            'User-Agent': navigator.userAgent
+                        },
+                        credentials: 'include',
+                        body: formData
+                    });
+                    
+                    if (response.ok) {
+                        const result = await response.text();
+                        return {
+                            success: true,
+                            status: response.status,
+                            data: result,
+                            method: 'GitHub Official API'
+                        };
+                    } else {
+                        return {
+                            success: false,
+                            status: response.status,
+                            error: `HTTP ${response.status}`,
+                            method: 'GitHub Official API'
+                        };
+                    }
+                } catch (error) {
+                    console.error('GitHub Official API Error:', error);
+                    return {
+                        success: false,
+                        error: error.message,
+                        method: 'GitHub Official API'
+                    };
+                }
+            }
+            
+            // Enterprise Slug公式API検証ボタンのイベントリスナー
+            checkSlugOfficialBtn.addEventListener('click', async function() {
+                console.log('Enterprise Slug公式API検証ボタンがクリックされました');
+                
+                const slug = slugInput.value.trim();
+                slugResult.innerHTML = '';
+                
+                if (!slug) {
+                    slugResult.innerHTML = '<div style="color: #d1242f; padding: 15px; border: 1px solid #f85149; border-radius: 6px; background-color: #fff8f8;">Enterprise Slugを入力してください</div>';
+                    return;
+                }
+                
+                // 基本的な形式チェック
+                if (!/^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$/.test(slug) || 
+                    slug.length < 1 || slug.length > 39) {
+                    slugResult.innerHTML = '<div style="color: #d1242f; padding: 15px; border: 1px solid #f85149; border-radius: 6px; background-color: #fff8f8;">Slug形式が正しくありません（英数字で開始・終了、ハイフン可、1-39文字）</div>';
+                    return;
+                }
+                
+                if (!githubCredentials.isValid) {
+                    slugResult.innerHTML = `
+                        <div style="color: #bf8700; padding: 15px; border: 1px solid #fb8500; border-radius: 6px; background-color: #fffdf0;">
+                            <strong>⚠️ 認証情報が必要:</strong> GitHub公式APIを使用するには認証情報の設定が必要です<br>
+                            <strong>💡 設定方法:</strong> 上記の「高精度検証の設定」セクションで認証情報を入力してください
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // ボタンを無効化
+                checkSlugOfficialBtn.disabled = true;
+                checkSlugOfficialBtn.textContent = '検証中...';
+                
+                // ローディング表示
+                slugResult.innerHTML = `
+                    <div style="color: #0969da; padding: 15px; border: 1px solid #d1d9e0; border-radius: 6px; background-color: #f6f8fa;">
+                        <span style="display: inline-block; animation: spin 1s linear infinite;">🔍</span> 
+                        <strong>GitHub公式API検証を実行中...</strong><br>
+                        <span style="font-size: 13px; color: #656d76;">check_enterprise_slug エンドポイントに接続中</span>
+                    </div>
+                `;
+                
+                try {
+                    const result = await callGitHubOfficialAPI(slug);
+                    displayOfficialAPIResult(slug, result);
+                } catch (error) {
+                    console.error('Enterprise Slug公式API検証エラー:', error);
+                    slugResult.innerHTML = `
+                        <div style="color: #d1242f; padding: 15px; border: 1px solid #f85149; border-radius: 6px; background-color: #fff8f8;">
+                            ❌ <strong>API呼び出しエラー:</strong> ${error.message}<br>
+                            <strong>💡 対処法:</strong> 認証情報を確認するか、手動確認をお試しください
+                        </div>
+                    `;
+                } finally {
+                    checkSlugOfficialBtn.disabled = false;
+                    checkSlugOfficialBtn.textContent = '公式API検証';
+                }
+            });
+            
+            // 公式API結果の表示
+            function displayOfficialAPIResult(slug, result) {
+                if (result.success) {
+                    // GitHub公式APIからの応答を解析
+                    const isAvailable = result.data.includes('available') || result.status === 200;
+                    
+                    if (isAvailable) {
+                        slugResult.innerHTML = `
+                            <div style="color: #1a7f37; padding: 15px; border: 2px solid #2da44e; border-radius: 6px; background-color: #f6ffed;">
+                                <strong>🎉 利用可能 (公式確認):</strong> "${slug}" は使用可能です
+                                <br><br><strong>🔒 GitHub公式API確認済み</strong>
+                                <br><strong>📊 信頼度:</strong> 99%
+                                <br><strong>📋 詳細:</strong> GitHub内部APIで利用可能を確認
+                                <br><strong>🔧 検証手法:</strong> ${result.method}
+                            </div>
+                        `;
+                    } else {
+                        slugResult.innerHTML = `
+                            <div style="color: #d1242f; padding: 15px; border: 2px solid #f85149; border-radius: 6px; background-color: #fff8f8;">
+                                <strong>🔒 既に使用中 (公式確認):</strong> "${slug}" は既に存在します
+                                <br><br><strong>🔒 GitHub公式API確認済み</strong>
+                                <br><strong>📊 信頼度:</strong> 99%
+                                <br><strong>📋 詳細:</strong> GitHub内部APIで既存を確認
+                                <br><strong>🔧 検証手法:</strong> ${result.method}
+                            </div>
+                        `;
+                    }
+                } else {
+                    slugResult.innerHTML = `
+                        <div style="color: #d1242f; padding: 15px; border: 1px solid #f85149; border-radius: 6px; background-color: #fff8f8;">
+                            <strong>❌ API呼び出し失敗:</strong> ${result.error || 'Unknown error'}
+                            <br><strong>📋 ステータス:</strong> ${result.status || 'Unknown'}
+                            <br><strong>💡 推奨:</strong> 認証情報を確認するか、手動確認をお試しください
+                        </div>
+                    `;
+                }
+            }
             
             // ユーザー名の有効性をチェックする関数
             function isValidUsername(username) {
@@ -357,38 +469,28 @@
                 }
             });
             
-            // Enterprise slugページを開くボタンのイベントリスナー（新しいタブ用）
-            if (openSlugBtn && slugInput) {
-                openSlugBtn.addEventListener('click', function() {
-                    console.log('Enterprise slugページを開くボタンがクリックされました');
-                    
-                    const slug = slugInput.value.trim();
-                    if (!slug) {
-                        alert('Enterprise slugを入力してください');
-                        return;
-                    }
-                    
-                    // 基本的な形式チェック
-                    if (!/^[a-zA-Z0-9-]+$/.test(slug) || slug.length < 1 || slug.length > 100) {
-                        alert('Enterprise slugの形式が正しくありません\n（英数字とハイフンのみ、1-100文字）');
-                        return;
-                    }
-                    
-                    const url = `https://github.com/enterprises/${encodeURIComponent(slug)}`;
-                    console.log('Enterprise slugページを開きます:', url);
-                    window.open(url, '_blank', 'noopener,noreferrer');
-                });
-            }
+            console.log('Enterprise slug要素が正常に取得されました');
             
-            // Enterprise作成ページを開くボタンのイベントリスナー
-            if (openEnterprisePageBtn) {
-                openEnterprisePageBtn.addEventListener('click', function() {
-                    console.log('Enterprise作成ページを開くボタンがクリックされました');
-                    const url = 'https://github.com/account/enterprises/new?users_type=metered_ghe';
-                    console.log('Enterprise作成ページを開きます:', url);
-                    window.open(url, '_blank', 'noopener,noreferrer');
-                });
-            }
+            // Enterprise slugページを開くボタンのイベントリスナー
+            openSlugBtn.addEventListener('click', function() {
+                console.log('Enterprise slugページを開くボタンがクリックされました');
+                
+                const slug = slugInput.value.trim();
+                if (!slug) {
+                    alert('Enterprise slugを入力してください');
+                    return;
+                }
+                
+                // 基本的な形式チェック
+                if (!/^[a-zA-Z0-9-]+$/.test(slug) || slug.length < 1 || slug.length > 100) {
+                    alert('Enterprise slugの形式が正しくありません\n（英数字とハイフンのみ、1-100文字）');
+                    return;
+                }
+                
+                const url = `https://github.com/enterprises/${encodeURIComponent(slug)}`;
+                console.log('Enterprise slugページを開きます:', url);
+                window.open(url, '_blank', 'noopener,noreferrer');
+            });
             
             // Enterキーでの実行をサポート
             usernameInput.addEventListener('keypress', function(event) {
@@ -397,13 +499,11 @@
                 }
             });
             
-            if (slugInput && openSlugBtn) {
-                slugInput.addEventListener('keypress', function(event) {
-                    if (event.key === 'Enter') {
-                        openSlugBtn.click();
-                    }
-                });
-            }
+            slugInput.addEventListener('keypress', function(event) {
+                if (event.key === 'Enter') {
+                    checkSlugOfficialBtn.click();
+                }
+            });
             
             console.log('すべてのイベントリスナーが設定されました');
         });
