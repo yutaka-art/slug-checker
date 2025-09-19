@@ -1,4 +1,5 @@
 // GitHub OAuth ログインを開始するエンドポイント
+import crypto from 'crypto';
 
 export default function handler(req, res) {
   if (req.method !== 'GET') {
@@ -22,10 +23,11 @@ export default function handler(req, res) {
     }
 
     // ランダムなstate値を生成（CSRF攻撃防止）
-    const state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    const state = crypto.randomBytes(16).toString('hex');
     
-    // stateをセッションまたはクッキーに保存（簡易実装）
-    res.setHeader('Set-Cookie', `oauth_state=${state}; HttpOnly; Secure; SameSite=Lax; Max-Age=600`);
+    // stateをセキュアなクッキーに保存（強化版）
+    const stateCookie = `oauth_state=${state}; HttpOnly; Secure; SameSite=Strict; Max-Age=600; Path=/`;
+    res.setHeader('Set-Cookie', stateCookie);
 
     // GitHub OAuth認証URLを構築
     const githubOAuthUrl = new URL('https://github.com/login/oauth/authorize');

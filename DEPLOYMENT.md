@@ -23,9 +23,9 @@ Vercelダッシュボードで以下の環境変数を設定:
 
 | Name | Value |
 |------|-------|
-| `GITHUB_CLIENT_ID` | `Ov23li28227p184SWRCh` |
-| `GITHUB_CLIENT_SECRET` | `5e05af0108961e594c3cc05e122ccba723c1c84c` |
-| `SESSION_SECRET` | ランダムな文字列（例: `abc123def456ghi789jkl012mno345pqr678stu901vwx234yz`) |
+| `GITHUB_CLIENT_ID` | `[GitHub Appsで取得したClient ID]` |
+| `GITHUB_CLIENT_SECRET` | `[GitHub Appsで取得したClient Secret]` |
+| `SESSION_SECRET` | `[ランダムな文字列を生成]` |
 
 **設定手順:**
 1. Vercelダッシュボードでプロジェクトを選択

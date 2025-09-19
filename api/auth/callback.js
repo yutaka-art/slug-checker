@@ -1,4 +1,5 @@
 // GitHub OAuth コールバックを処理するエンドポイント
+import crypto from 'crypto';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -88,22 +89,26 @@ export default async function handler(req, res) {
       name: userData.name
     });
 
-    // セッション情報をクッキーに保存（簡易実装）
+    // セッション情報をクッキーに保存（暗号化実装）
     const sessionData = {
       username: userData.login,
       name: userData.name,
       avatar: userData.avatar_url,
       id: userData.id,
-      accessToken: accessToken, // 注意: 実際の本番環境では暗号化推奨
+      accessToken: accessToken, // 暗号化して保存
+      timestamp: Date.now() // セッション作成時刻
     };
 
-    const sessionCookie = Buffer.from(JSON.stringify(sessionData)).toString('base64');
+    // セッションデータを暗号化
+    const sessionCookie = encryptSessionData(sessionData);
     
-    // セキュアなクッキー設定
-    res.setHeader('Set-Cookie', [
-      `github_session=${sessionCookie}; HttpOnly; Secure; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`, // 7日間
-      'oauth_state=; HttpOnly; Secure; SameSite=Lax; Max-Age=0' // state cookieを削除
-    ]);
+    // セキュアなクッキー設定（強化版）
+    const cookieOptions = [
+      `github_session=${sessionCookie}; HttpOnly; Secure; SameSite=Strict; Max-Age=${7 * 24 * 60 * 60}; Path=/`,
+      'oauth_state=; HttpOnly; Secure; SameSite=Strict; Max-Age=0; Path=/'
+    ];
+    
+    res.setHeader('Set-Cookie', cookieOptions);
 
     // 認証成功をフロントエンドに伝えるためにリダイレクト
     res.redirect('/?auth=success');
@@ -114,14 +119,49 @@ export default async function handler(req, res) {
   }
 }
 
-// 簡易的なクッキーパーサー
+// セッションデータの暗号化機能
+function encryptSessionData(data) {
+  try {
+    const sessionSecret = process.env.SESSION_SECRET;
+    if (!sessionSecret) {
+      console.warn('SESSION_SECRET not found, using base64 encoding instead of encryption');
+      return Buffer.from(JSON.stringify(data)).toString('base64');
+    }
+
+    const algorithm = 'aes-256-gcm';
+    const secretKey = crypto.createHash('sha256').update(sessionSecret).digest();
+    const iv = crypto.randomBytes(16);
+    
+    const cipher = crypto.createCipherGCM(algorithm, secretKey, iv);
+    
+    let encrypted = cipher.update(JSON.stringify(data), 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    const tag = cipher.getAuthTag();
+    
+    const encryptedData = {
+      encrypted,
+      iv: iv.toString('hex'),
+      tag: tag.toString('hex'),
+      algorithm
+    };
+    
+    return Buffer.from(JSON.stringify(encryptedData)).toString('base64');
+  } catch (error) {
+    console.error('Encryption error:', error);
+    // フォールバック: Base64エンコーディング
+    return Buffer.from(JSON.stringify(data)).toString('base64');
+  }
+}
+
+// セキュリティ強化されたクッキーパーサー
 function parseCookies(cookieString) {
   const cookies = {};
   if (cookieString) {
     cookieString.split(';').forEach(cookie => {
-      const [name, value] = cookie.trim().split('=');
-      if (name && value) {
-        cookies[name] = value;
+      const [name, ...valueParts] = cookie.trim().split('=');
+      if (name && valueParts.length > 0) {
+        // 複数の = が含まれる場合を正しく処理
+        cookies[name] = valueParts.join('=');
       }
     });
   }

@@ -6,11 +6,13 @@ export default function handler(req, res) {
   }
 
   try {
-    // セッションクッキーを削除
-    res.setHeader('Set-Cookie', [
-      'github_session=; HttpOnly; Secure; SameSite=Lax; Max-Age=0',
-      'oauth_state=; HttpOnly; Secure; SameSite=Lax; Max-Age=0'
-    ]);
+    // セッションクッキーを安全に削除（セキュリティ強化版）
+    const secureLogoutCookies = [
+      'github_session=; HttpOnly; Secure; SameSite=Strict; Max-Age=0; Path=/',
+      'oauth_state=; HttpOnly; Secure; SameSite=Strict; Max-Age=0; Path=/'
+    ];
+    
+    res.setHeader('Set-Cookie', secureLogoutCookies);
 
     console.log('User logged out successfully');
 
