@@ -230,6 +230,30 @@
         </div>
     </div>
     
+    <div class="warning" id="authWarning">
+        <h3>⚠️ 重要な注意事項</h3>
+        <div id="authWarningContent">
+            <p><strong>GitHub認証状態の自動検出を試行中...</strong></p>
+            <p>Enterprise Slug確認にはGitHub認証が必要です。下記ボタンでサインインしてください。</p>
+            <p>※ GitHubユーザー名チェックは、認証状態に関係なく正常に動作します。</p>
+            
+            <div style="margin-top: 15px;">
+                <a href="/api/auth/login" 
+                   style="
+                       display: inline-block;
+                       background-color: #0969da;
+                       color: white;
+                       text-decoration: none;
+                       padding: 10px 20px;
+                       border-radius: 6px;
+                       font-weight: 500;
+                   ">
+                   GitHubでサインイン
+                </a>
+            </div>
+        </div>
+    </div>
+    
     <!-- GitHub認証状態検出結果 -->
     <div id="authStatus"></div>
     
@@ -254,6 +278,15 @@
             <strong>🎯 GitHub公式Enterprise作成ページ:</strong> 下記のボタンで新しいタブでEnterprise作成ページを開き、Slugの有効性を確認できます。<br>
             <strong>✅ 要件:</strong> GitHubアカウントへのサインインが必要です。<br>
             <strong>🔧 使用方法:</strong> 新しいタブで希望するSlugを入力し、リアルタイムで有効性を確認してください。
+        </div>
+        
+        <div class="note" style="background-color: #f0f8ff; border-color: #b6d7ff; margin-top: 15px;">
+            <strong>📋 確認手順:</strong><br>
+            1. 下記ボタンで新しいタブでEnterprise作成ページを開く<br>
+            2. Enterprise nameフィールドにSlugを入力<br>
+            3. リアルタイムで有効性が表示されます<br>
+            4. ✅ 緑色のチェック = 利用可能<br>
+            5. ❌ 赤色のエラー = 既に使用中または無効
         </div>
         
         <!-- GitHub Enterprise作成ページへのリンク -->
@@ -301,6 +334,24 @@
             <strong>⚠️ 注意:</strong> 新しいタブでGitHubへのサインインが求められた場合は、通常通りサインインを行ってください。<br>
             <strong>🔒 セキュリティ:</strong> すべての操作はGitHub公式サイト上で実行されるため、安全です。
         </div>
+        
+        <!-- 従来の手動確認方法も残す -->
+        <details style="margin-top: 15px;">
+            <summary style="cursor: pointer; color: #0969da; font-weight: bold;">🔧 別ウィンドウで確認する場合</summary>
+            <div style="margin-top: 10px; padding: 15px; background-color: #f6f8fa; border: 1px solid #d1d9e0; border-radius: 6px;">
+                <div class="input-group">
+                    <input type="text" id="slugInput" placeholder="例: acme-enterprise">
+                    <button type="button" id="openSlugBtn">新しいタブで開く</button>
+                </div>
+                
+                <div class="note" style="background-color: #f6f8fa; border-color: #d1d9e0; margin-top: 10px;">
+                    <strong>📋 手動確認方法:</strong><br>
+                    • <strong>404 Not Found</strong> → ✅ <span style="color: #1a7f37;">利用可能</span><br>
+                    • <strong>ページが表示される</strong> → ❌ <span style="color: #d1242f;">既に使用中</span><br>
+                    • <strong>ログイン画面への誘導</strong> → ❌ <span style="color: #d1242f;">既に使用中</span>
+                </div>
+            </div>
+        </details>
     </div>
 
     <script>
@@ -415,6 +466,7 @@
             updateUI() {
                 const authDisplay = document.getElementById('authDisplay');
                 const authStatus = document.getElementById('authStatus');
+                const authWarning = document.getElementById('authWarning');
                 
                 if (this.isAuthenticated && this.user) {
                     // 認証済みの場合
@@ -442,6 +494,11 @@
                                 </div>
                             </div>
                         `;
+                    }
+                    
+                    // 警告セクションを非表示
+                    if (authWarning) {
+                        authWarning.style.display = 'none';
                     }
                 } else {
                     // 未認証の場合
@@ -484,6 +541,11 @@
                             </div>
                         `;
                     }
+                    
+                    // 警告セクションを表示
+                    if (authWarning) {
+                        authWarning.style.display = 'block';
+                    }
                 }
             }
             
@@ -520,6 +582,8 @@
             const usernameInput = document.getElementById('usernameInput');
             const checkUsernameBtn = document.getElementById('checkUsernameBtn');
             const usernameResult = document.getElementById('usernameResult');
+            const slugInput = document.getElementById('slugInput');
+            const openSlugBtn = document.getElementById('openSlugBtn');
             const openEnterprisePageBtn = document.getElementById('openEnterprisePageBtn');
             
             // 要素の存在確認
@@ -596,6 +660,29 @@
                 }
             });
             
+            // Enterprise slugページを開くボタンのイベントリスナー（新しいタブ用）
+            if (openSlugBtn && slugInput) {
+                openSlugBtn.addEventListener('click', function() {
+                    console.log('Enterprise slugページを開くボタンがクリックされました');
+                    
+                    const slug = slugInput.value.trim();
+                    if (!slug) {
+                        alert('Enterprise slugを入力してください');
+                        return;
+                    }
+                    
+                    // 基本的な形式チェック
+                    if (!/^[a-zA-Z0-9-]+$/.test(slug) || slug.length < 1 || slug.length > 100) {
+                        alert('Enterprise slugの形式が正しくありません\n（英数字とハイフンのみ、1-100文字）');
+                        return;
+                    }
+                    
+                    const url = `https://github.com/enterprises/${encodeURIComponent(slug)}`;
+                    console.log('Enterprise slugページを開きます:', url);
+                    window.open(url, '_blank', 'noopener,noreferrer');
+                });
+            }
+            
             // Enterprise作成ページを開くボタンのイベントリスナー
             if (openEnterprisePageBtn) {
                 openEnterprisePageBtn.addEventListener('click', function() {
@@ -612,6 +699,14 @@
                     checkUsernameBtn.click();
                 }
             });
+            
+            if (slugInput && openSlugBtn) {
+                slugInput.addEventListener('keypress', function(event) {
+                    if (event.key === 'Enter') {
+                        openSlugBtn.click();
+                    }
+                });
+            }
             
             console.log('すべてのイベントリスナーが設定されました');
         });

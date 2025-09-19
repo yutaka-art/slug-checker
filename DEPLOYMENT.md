@@ -43,6 +43,9 @@ Vercelダッシュボードで以下の環境変数を設定:
 2. "Authorization callback URL" を更新:
    - 現在: `http://localhost:8003/`
    - 新規: `https://your-app-name.vercel.app/api/auth/callback`
+   - 新規: `https://slug-checker-labq.vercel.app/api/auth/callback`
+
+
 
 例: `https://github-slug-checker.vercel.app/api/auth/callback`
 
