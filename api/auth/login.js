@@ -25,8 +25,10 @@ export default function handler(req, res) {
     // ランダムなstate値を生成（CSRF攻撃防止）
     const state = crypto.randomBytes(16).toString('hex');
     
-    // stateをセキュアなクッキーに保存（強化版）
-    const stateCookie = `oauth_state=${state}; HttpOnly; Secure; SameSite=Strict; Max-Age=600; Path=/`;
+    // stateをセキュアなクッキーに保存（localhost=HTTP では Secure フラグを外す）
+    const isLocalhost = host && host.includes('localhost');
+    const secureFlag = isLocalhost ? '' : '; Secure';
+    const stateCookie = `oauth_state=${state}; HttpOnly${secureFlag}; SameSite=Lax; Max-Age=600; Path=/`;
     res.setHeader('Set-Cookie', stateCookie);
 
     // GitHub OAuth認証URLを構築
